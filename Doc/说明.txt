@@ -1,0 +1,5 @@
+联机号：hydb.v_cm_result.itemcode
+
+数据库hydb的访问帐号：
+账号hy
+密码HYlab@2019.
