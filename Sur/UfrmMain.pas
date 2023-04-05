@@ -285,6 +285,13 @@ begin
   if MakeDBConn then ConnectString:=GetConnectString;
 end;
 
+{
+--LIS提供给华银的项目对照视图
+--华银反馈不需要提供线上对照,在此做个备份
+select ci.Id,ci.Name,cci.itemid,cci.name as itemname,cci.english_name,cci.unit,cci.dlttype
+from clinicchkitem cci,CombSChkItem csci,combinitem ci
+where csci.ItemUnid=cci.unid and ci.Unid=csci.CombUnid and COMMWORD='H'
+}
 procedure TfrmMain.Timer1Timer(Sender: TObject);
 VAR
   adotemp22,adotemp44:tadoquery;
