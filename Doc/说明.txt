@@ -3,3 +3,63 @@
 数据库hydb的访问帐号：
 账号hy
 密码HYlab@2019.
+
+
+
+
+if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[v_cm_sample]') and OBJECTPROPERTY(id, N'IsView') = 1)
+drop view [dbo].[v_cm_sample]
+GO
+
+SET QUOTED_IDENTIFIER ON 
+GO
+SET ANSI_NULLS ON 
+GO
+
+CREATE VIEW v_cm_sample
+AS
+--LIS提供给华银的视图
+select 
+cc.unid as hospitalBarcode
+,'' as hospsamplenumber
+,SUBSTRING(isnull(cc.checkid,''),2,100) as pno
+,cc.His_MzOrZy as ptype
+,cc.bedno
+,cc.patientname as pname
+,cc.sex as psex
+,cc.age as page
+,'' as pageunit
+,cc.Telephone as ptel
+,'' as stature
+,'' as avoirdupois
+,'' as gravweek
+,'' as collectiongravweek
+,'' as gravday
+,'' as collectiongravday
+,null as birthday
+,cc.deptname as departname
+,cc.check_doctor as docname
+,'' as doctortel
+,cc.diagnose as diagnosis
+,cc.flagetype as stype
+,cc.typeflagcase as samstate
+,cv.pkcombin_id as desccode
+,cv.combin_Name as descr
+,null as sampletime
+,cc.report_date as senddate
+,cc.issure as remark
+from chk_con cc,chk_valu cv,clinicchkitem cci
+where cc.unid=cv.pkunid
+and cv.itemid=cci.itemid
+and ISNULL(cc.report_doctor,'')=''
+and LEFT(cc.checkid,1)='H'
+and isnull(cv.itemvalue,'')=''
+and cci.COMMWORD='H'
+
+GO
+
+GRANT SELECT ON v_cm_sample TO HYLIS
+GO
+
+sp_refreshview  'dbo.v_cm_sample'
+GO
