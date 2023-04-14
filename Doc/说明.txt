@@ -4,9 +4,7 @@
 账号hy
 密码HYlab@2019.
 
-
-
-
+=========================================
 if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[v_cm_sample]') and OBJECTPROPERTY(id, N'IsView') = 1)
 drop view [dbo].[v_cm_sample]
 GO
@@ -63,3 +61,9 @@ GO
 
 sp_refreshview  'dbo.v_cm_sample'
 GO
+
+=================================
+业务操作步骤：
+1、在LIS中维护外送华银的项目，联机字母H，联机标识向华银林经理获取（即华银项目的项目号）
+2、门诊/住院/体检扫描条码时，如果是华银的项目，联机号一定需要输入，格式为H****
+3、华银做为结果后，就会直接在LIS中显示结果了
