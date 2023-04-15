@@ -56,10 +56,10 @@ and cci.COMMWORD='H'
 
 GO
 
-GRANT SELECT ON v_cm_sample TO HYLIS
+sp_refreshview  'dbo.v_cm_sample'
 GO
 
-sp_refreshview  'dbo.v_cm_sample'
+GRANT SELECT ON v_cm_sample TO HYLIS
 GO
 
 =================================
