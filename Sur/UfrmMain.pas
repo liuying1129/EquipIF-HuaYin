@@ -338,6 +338,7 @@ VAR
   ReceiveItemInfo:OleVariant;
   FInts:OleVariant;
   check_date:String;
+  checkid:String;
 begin
   if not ifConnSucc then exit;
 
@@ -354,16 +355,27 @@ begin
   adotemp22.Open;
   while not adotemp22.Eof do
   begin
-    check_date:=ScalarSQLCmd(ConnectString,'select CONVERT(CHAR(10),check_date,121) from chk_con where unid='+adotemp22.fieldbyname('TJH').AsString)+' and isnull(checkid,'''')='''' ';
-    if check_date='' then
+    if '1'<>ScalarSQLCmd(ConnectString,'select 1 from chk_con where unid='+adotemp22.fieldbyname('TJH').AsString) then
     begin
-      memo1.Lines.Add('chk_con.unid找不到:'+adotemp22.fieldbyname('TJH').AsString+'且联机号为空的检验单.barcode:'+adotemp22.fieldbyname('barcode').AsString+',itemcode:'+adotemp22.fieldbyname('itemcode').AsString+',hycode:'+adotemp22.fieldbyname('hycode').AsString);
+      memo1.Lines.Add('chk_con.unid找不到:'+adotemp22.fieldbyname('TJH').AsString+'.barcode:'+adotemp22.fieldbyname('barcode').AsString+',itemcode:'+adotemp22.fieldbyname('itemcode').AsString+',hycode:'+adotemp22.fieldbyname('hycode').AsString);
       adotemp22.Next;
       continue;
     end;
 
-    //表示是LIS传给华银的申请单,并且联机号为空,自动生成联机号,以便Data2LisSvr.dll使用
-    ExecSQLCmd(ConnectString,'update chk_con set checkid='''+EquipChar+'''+unid where unid='+adotemp22.fieldbyname('TJH').AsString);
+    checkid:=ScalarSQLCmd(ConnectString,'select checkid from chk_con where unid='+adotemp22.fieldbyname('TJH').AsString);
+
+    if(trim(checkid)<>'')and(uppercase(checkid)<>uppercase(EquipChar+adotemp22.fieldbyname('TJH').AsString))then
+    begin
+      memo1.Lines.Add('chk_con.unid联机号错误:'+adotemp22.fieldbyname('TJH').AsString);
+      adotemp22.Next;
+      continue;
+    end;
+
+    if trim(checkid)='' then
+      //表示是LIS传给华银的申请单,并且联机号为空,自动生成联机号,以便Data2LisSvr.dll使用
+      ExecSQLCmd(ConnectString,'update chk_con set checkid='''+EquipChar+'''+CONVERT(varchar(20),unid) where unid='+adotemp22.fieldbyname('TJH').AsString);
+
+    check_date:=ScalarSQLCmd(ConnectString,'select CONVERT(CHAR(10),check_date,121) from chk_con where unid='+adotemp22.fieldbyname('TJH').AsString);
 
     ReceiveItemInfo:=VarArrayCreate([0,0],varVariant);
     ReceiveItemInfo[0]:=VarArrayof([adotemp22.FieldByName('itemcode').AsString,adotemp22.FieldByName('result').AsString,'','']);
