@@ -67,13 +67,10 @@ const
 
 var
   ConnectString:string;
-  GroupName:string;//
   SpecStatus:string ;//
-  CombinID:string;//
   LisFormCaption:string;//
   EquipChar:string;
   ifRecLog:boolean;//是否记录调试日志
-  EquipUnid:integer;//设备唯一编号
 
   DaanConnStr:string;
   ifConnSucc:boolean;
@@ -83,6 +80,62 @@ var
   bRegister:boolean;
 
 {$R *.dfm}
+
+function ExecSQLCmd(AConnectionString:string;ASQL:string):integer;
+var
+  Conn:TADOConnection;
+  Qry:TAdoQuery;
+begin
+  Conn:=TADOConnection.Create(nil);
+  Conn.LoginPrompt:=false;
+  Conn.ConnectionString:=AConnectionString;
+  Qry:=TAdoQuery.Create(nil);
+  Qry.Connection:=Conn;
+  Qry.Close;
+  Qry.SQL.Clear;
+  Qry.SQL.Text:=ASQL;
+  Try
+    Result:=Qry.ExecSQL;
+  except
+    on E:Exception do
+    begin
+      WriteLog(pchar('函数ExecSQLCmd失败:'+E.Message+'。错误的SQL:'+ASQL));
+      Result:=-1;
+    end;
+  end;
+  Qry.Free;
+  Conn.Free;
+end;
+
+function ScalarSQLCmd(AConnectionString:string;ASQL:string):string;
+var
+  Conn:TADOConnection;
+  Qry:TAdoQuery;
+begin
+  Result:='';
+  Conn:=TADOConnection.Create(nil);
+  Conn.LoginPrompt:=false;
+  Conn.ConnectionString:=AConnectionString;
+  Qry:=TAdoQuery.Create(nil);
+  Qry.Connection:=Conn;
+  Qry.Close;
+  Qry.SQL.Clear;
+  Qry.SQL.Text:=ASQL;
+  Try
+    Qry.Open;
+  except
+    on E:Exception do
+    begin
+      WriteLog(pchar('函数ScalarSQLCmd失败:'+E.Message+'。错误的SQL:'+ASQL));
+      Qry.Free;
+      Conn.Free;
+      exit;
+    end;
+  end;
+  Result:=Qry.Fields[0].AsString;
+  Qry.Free;
+  Conn.Free;
+end;
 
 function ifRegister:boolean;
 var
@@ -182,13 +235,10 @@ begin
   autorun:=ini.readBool(IniSection,'开机自动运行',false);
   ifRecLog:=ini.readBool(IniSection,'调试日志',false);
 
-  GroupName:=trim(ini.ReadString(IniSection,'工作组',''));
   EquipChar:=trim(uppercase(ini.ReadString(IniSection,'仪器字母','')));//读出来是大写就万无一失了
   SpecStatus:=ini.ReadString(IniSection,'默认样本状态','');
-  CombinID:=ini.ReadString(IniSection,'组合项目代码','');
 
   LisFormCaption:=ini.ReadString(IniSection,'检验系统窗体标题','');
-  EquipUnid:=ini.ReadInteger(IniSection,'设备唯一编号',-1);
 
   DaanConnStr:=ini.ReadString(IniSection,'连接华银数据库','');
 
@@ -243,14 +293,11 @@ var
   ss:string;
 begin
   ss:='连接华银数据库'+#2+'DBConn'+#2+#2+'1'+#2+#2+#3+
-      '工作组'+#2+'Edit'+#2+#2+'1'+#2+#2+#3+
       '仪器字母'+#2+'Edit'+#2+#2+'1'+#2+#2+#3+
       '检验系统窗体标题'+#2+'Edit'+#2+#2+'1'+#2+#2+#3+
       '默认样本状态'+#2+'Edit'+#2+#2+'1'+#2+#2+#3+
-      '组合项目代码'+#2+'Edit'+#2+#2+'1'+#2+#2+#3+
       '开机自动运行'+#2+'CheckListBox'+#2+#2+'1'+#2+#2+#3+
-      '调试日志'+#2+'CheckListBox'+#2+#2+'0'+#2+'注:强烈建议在正常运行时关闭'+#2+#3+
-      '设备唯一编号'+#2+'Edit'+#2+#2+'1'+#2+#2+#3;
+      '调试日志'+#2+'CheckListBox'+#2+#2+'0'+#2+'注:强烈建议在正常运行时关闭'+#2+#3;
 
   if ShowOptionForm('',Pchar(IniSection),Pchar(ss),Pchar(ChangeFileExt(Application.ExeName,'.ini'))) then
 	  UpdateConfig;
@@ -285,18 +332,12 @@ begin
   if MakeDBConn then ConnectString:=GetConnectString;
 end;
 
-{
---LIS提供给华银的项目对照视图
---华银反馈不需要提供线上对照,在此做个备份
-select ci.Id,ci.Name,cci.itemid,cci.name as itemname,cci.english_name,cci.unit,cci.dlttype
-from clinicchkitem cci,CombSChkItem csci,combinitem ci
-where csci.ItemUnid=cci.unid and ci.Unid=csci.CombUnid and COMMWORD='H'
-}
 procedure TfrmMain.Timer1Timer(Sender: TObject);
 VAR
-  adotemp22,adotemp44:tadoquery;
+  adotemp22:tadoquery;
   ReceiveItemInfo:OleVariant;
   FInts:OleVariant;
+  check_date:String;
 begin
   if not ifConnSucc then exit;
 
@@ -308,11 +349,21 @@ begin
   adotemp22.Connection:=ADOConn_BS;
   adotemp22.Close;
   adotemp22.SQL.Clear;
-  adotemp22.SQL.Text:='select * from v_cm_result where isnull(staut,'''')='''' and repdate>GETDATE()-90';
+  //                                             YkLis读取结果后设置为[已读取]    防呆,仅读取近7天结果     仅读取已审核结果            仅读取不为空的结果          
+  adotemp22.SQL.Text:='select * from v_cm_result where isnull(staut,'''')='''' and repdate>GETDATE()-7 and isnull(shys,'''')<>'''' and isnull(result,'''')<>'''' ';
   adotemp22.Open;
   while not adotemp22.Eof do
   begin
-    memo1.Lines.Add('获取病人结果,联机号:'+adotemp22.fieldbyname('TJH').AsString+',name:'+adotemp22.fieldbyname('name').AsString+',itemcode:'+adotemp22.fieldbyname('itemcode').AsString+',result:'+adotemp22.fieldbyname('result').AsString);
+    check_date:=ScalarSQLCmd(ConnectString,'select CONVERT(CHAR(10),check_date,121) from chk_con where unid='+adotemp22.fieldbyname('TJH').AsString)+' and isnull(checkid,'''')='''' ';
+    if check_date='' then
+    begin
+      memo1.Lines.Add('chk_con.unid找不到:'+adotemp22.fieldbyname('TJH').AsString+'且联机号为空的检验单.barcode:'+adotemp22.fieldbyname('barcode').AsString+',itemcode:'+adotemp22.fieldbyname('itemcode').AsString+',hycode:'+adotemp22.fieldbyname('hycode').AsString);
+      adotemp22.Next;
+      continue;
+    end;
+
+    //表示是LIS传给华银的申请单,并且联机号为空,自动生成联机号,以便Data2LisSvr.dll使用
+    ExecSQLCmd(ConnectString,'update chk_con set checkid='''+EquipChar+'''+unid where unid='+adotemp22.fieldbyname('TJH').AsString);
 
     ReceiveItemInfo:=VarArrayCreate([0,0],varVariant);
     ReceiveItemInfo[0]:=VarArrayof([adotemp22.FieldByName('itemcode').AsString,adotemp22.FieldByName('result').AsString,'','']);
@@ -321,28 +372,23 @@ begin
     begin
       FInts :=CreateOleObject('Data2LisSvr.Data2Lis');
       FInts.fData2Lis(ReceiveItemInfo,adotemp22.fieldbyname('TJH').AsString,
-        FormatDateTime('YYYY-MM-DD hh:nn:ss',adotemp22.fieldbyname('repdate').AsDateTime),
-        (GroupName),adotemp22.fieldbyname('sampleTypeName').AsString,(SpecStatus),(EquipChar),
-        (CombinID),'',
+        check_date,
+        (''),adotemp22.fieldbyname('sampleTypeName').AsString,(SpecStatus),(EquipChar),
+        (''),'',
         (LisFormCaption),(ConnectString),
         (''),(''),(''),'',
         ifRecLog,true,'常规',
         '',
-        EquipUnid,
+        -1,
         '','','','',
         -1,-1,-1,-1,
         -1,-1,-1,-1,
         false,false,false,false);
       if not VarIsEmpty(FInts) then FInts:= unAssigned;
       
-      adotemp44:=tadoquery.Create(nil);
-      adotemp44.Connection:=ADOConn_BS;
-      adotemp44.Close;
-      adotemp44.SQL.Clear;
       //v_cm_result的联合主键字段:barcode+itemcode+hycode
-      adotemp44.SQL.Text:='update v_cm_result set staut=''已读取'' where barcode='''+adotemp22.fieldbyname('barcode').AsString+''' and itemcode='''+adotemp22.fieldbyname('itemcode').AsString+''' and hycode='''+adotemp22.fieldbyname('hycode').AsString+''' ';
-      adotemp44.ExecSQL;
-      adotemp44.Free;
+      ExecSQLCmd(DaanConnStr,'update v_cm_result set staut=''已读取'' where barcode='''+adotemp22.fieldbyname('barcode').AsString+''' and itemcode='''+adotemp22.fieldbyname('itemcode').AsString+''' and hycode='''+adotemp22.fieldbyname('hycode').AsString+''' ');
+      memo1.Lines.Add('获取结果.unid:'+adotemp22.fieldbyname('TJH').AsString+',name:'+adotemp22.fieldbyname('name').AsString+',barcode:'+adotemp22.fieldbyname('barcode').AsString+',itemcode:'+adotemp22.fieldbyname('itemcode').AsString+',hycode:'+adotemp22.fieldbyname('hycode').AsString);
     end;
 
     adotemp22.Next;
