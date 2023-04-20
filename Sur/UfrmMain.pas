@@ -31,7 +31,6 @@ type
     ADOConn_BS: TADOConnection;
     Timer1: TTimer;
     LYTray1: TCoolTrayIcon;
-    Label1: TLabel;
     procedure N3Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -293,7 +292,7 @@ var
   ss:string;
 begin
   ss:='连接华银数据库'+#2+'DBConn'+#2+#2+'1'+#2+#2+#3+
-      '仪器字母'+#2+'Edit'+#2+#2+'1'+#2+#2+#3+
+      '仪器字母'+#2+'Edit'+#2+#2+'1'+#2+'申请单视图v_cm_sample使用H,故联机字母必需为H'+#2+#3+
       '检验系统窗体标题'+#2+'Edit'+#2+#2+'1'+#2+#2+#3+
       '默认样本状态'+#2+'Edit'+#2+#2+'1'+#2+#2+#3+
       '开机自动运行'+#2+'CheckListBox'+#2+#2+'1'+#2+#2+#3+
@@ -350,8 +349,8 @@ begin
   adotemp22.Connection:=ADOConn_BS;
   adotemp22.Close;
   adotemp22.SQL.Clear;
-  //                                             YkLis读取结果后设置为[已读取]    防呆,仅读取近7天结果     仅读取已审核结果            仅读取不为空的结果          
-  adotemp22.SQL.Text:='select * from v_cm_result where isnull(staut,'''')='''' and repdate>GETDATE()-7 and isnull(shys,'''')<>'''' and isnull(result,'''')<>'''' ';
+  //                                             YkLis读取结果后设置为[已读取]    防呆,仅读取近7天结果     仅读取不为空的结果          
+  adotemp22.SQL.Text:='select * from v_cm_result where isnull(staut,'''')='''' and repdate>GETDATE()-7 and isnull(result,'''')<>'''' ';
   adotemp22.Open;
   while not adotemp22.Eof do
   begin

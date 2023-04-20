@@ -18,19 +18,6 @@ object frmMain: TfrmMain
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
-  object Label1: TLabel
-    Left = 16
-    Top = 384
-    Width = 405
-    Height = 13
-    Caption = #27880':'#22240#25552#20379#32473#21326#38134#30340#30003#35831#21333#35270#22270#30340#39033#30446#22266#23450#20026'H'#39033#30446','#25925#32852#26426#23383#27597#24517#38656#20026'H'
-    Font.Charset = GB2312_CHARSET
-    Font.Color = clBlue
-    Font.Height = -13
-    Font.Name = #23435#20307
-    Font.Style = []
-    ParentFont = False
-  end
   object CoolBar1: TCoolBar
     Left = 0
     Top = 0
