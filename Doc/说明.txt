@@ -18,6 +18,7 @@ CREATE VIEW [dbo].[v_cm_sample]
 AS
 --LIS提供给华银的视图
 select 
+distinct 
 --华银要求hospitalBarcode不能为空
 case when isnull(cc.TjJianYan,'')='' then 'NoBarcode' else cc.TjJianYan end as hospitalBarcode
 ,'' as hospsamplenumber
