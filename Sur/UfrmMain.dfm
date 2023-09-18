@@ -152,7 +152,7 @@ object frmMain: TfrmMain
     Top = 104
   end
   object Timer1: TTimer
-    Interval = 120000
+    Interval = 300000
     OnTimer = Timer1Timer
     Left = 144
     Top = 104
