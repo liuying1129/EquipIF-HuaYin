@@ -60,6 +60,8 @@ GO
 sp_refreshview  'dbo.v_cm_sample'
 GO
 
+--创建用户HYLIS/HYLIS
+--配置用户权限
 GRANT SELECT ON v_cm_sample TO HYLIS
 GO
 
