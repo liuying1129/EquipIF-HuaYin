@@ -344,6 +344,7 @@ begin
   (Sender as TTimer).Enabled:=false;
 
   if length(memo1.Lines.Text)>=60000 then memo1.Lines.Clear;//memo只能接受64K个字符
+  Memo1.Lines.Add(DateTimeToStr(now));//用于观测服务程序是否死掉
 
   adotemp22:=tadoquery.Create(nil);
   adotemp22.Connection:=ADOConn_BS;
